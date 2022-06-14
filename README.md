@@ -1,8 +1,23 @@
 # Advanced Sample Hardhat Project
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+### Cancel Transaction
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+```
+
+    // let nonce = await deployer.getTransactionCount();
+  // console.log("Nonce : ", nonce);
+  // const tx = {
+  //   nonce: 36,
+  //   to: ethers.constants.AddressZero,
+  //   data: "0x",
+  //   gasPrice: parseUnits("80", "gwei"),
+  // };
+
+  // let txResult = await deployer.sendTransaction(tx);
+  // console.log(txResult.nonce);
+
+
+```
 
 Try running some of the following tasks:
 

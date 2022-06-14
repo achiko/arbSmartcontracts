@@ -7,9 +7,6 @@ import { IERC20 } from "./Interfaces/Interfaces.sol";
 import { SafeMath, SafeERC20 } from "./Interfaces/Libraries.sol";
 
 
-
-
-
 contract Arb  {
     using SafeERC20 for IERC20;
 
@@ -28,10 +25,10 @@ contract Arb  {
 
     fallback() external payable {}
 
-    function wrapAwax(uint _amount) public {
-        (bool success,) = address(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7).call{value: _amount}("");
-        require(success);
-    }
+    // function wrapAwax(uint _amount) public {
+    //     (bool success,) = address(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7).call{value: _amount}("");
+    //     require(success);
+    // }
 
 
     function startArbitrage(
