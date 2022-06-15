@@ -12,7 +12,7 @@ import { IARBITEM } from "../test/types";
 import { BigNumber, FixedNumber, providers } from "ethers";
 import { getMaxListeners } from "process";
 
-const ARB_CONTRACT_ADDRESS = "0x54db0E6bb95D5C188E2D96d971B871Cb75A862E0";
+const ARB_CONTRACT_ADDRESS = "0xe7bec638c696b851f2ada55add5ddc97ea935103";
 const INVESTMENT_ASSET = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const ARB_ENDPOINT = "http://65.108.206.172:8080/arb";
 
@@ -42,7 +42,7 @@ interface SIMULATION {
 
 const gasParams = {
   gasLimit: "4000000",
-  gasPrice: parseUnits("35", "gwei"),
+  gasPrice: parseUnits("50", "gwei"),
 };
 
 // const eip1559gasParams: feeData = {};
@@ -69,60 +69,61 @@ async function main() {
     INVESTMENT_ASSET
   );
   console.log("START BALANCE : ", formatEther(startBalance));
-
   let _consolaTable = [];
+
+  let totalInvest = BigNumber.from("0");
 
   for (let _arbItem of data) {
     let txData = extractTransactionData(_arbItem);
     let simulateResult = await simulateTransaction(contract, txData);
 
-    console.log("result : ", simulateResult.success);
-
     if (simulateResult.success) {
-      console.log("Success?:", simulateResult.success);
-
       let { invest, profit, token1, token2 } = simulateResult;
       let { gasFee } = await esitmateGas(contract, txData);
-      console.log("Estimate Gas : ", gasFee.toString());
 
-      console.log("gasFee Result : ", gasFee);
-      console.log(
-        "profit.sub(invest).sub(gasFee).gt(0",
-        profit.sub(invest).sub(gasFee).gt(0)
-      );
       if (profit.sub(invest).sub(gasFee).gt(0)) {
         console.log("Start Transaction !!! ");
+
+        const nonce = await deployer.getTransactionCount();
+        console.log("Nonce : ", nonce);
 
         let tx = await contract.startArbitrage(
           txData._token1,
           txData._token2,
-          txData._router2,
           txData._router1,
+          txData._router2,
           txData._investAmount,
           {
+            gasLimit: 300000,
             maxFeePerGas: maxFeePerGas,
             maxPriorityFeePerGas: maxPriorityFeePerGas,
+            nonce: nonce,
           }
         );
-
+        // console.log(
+        //   "Total Investment : ",
+        //   txData._investAmount,
+        //   formatEther(totalInvest),
+        //   "Is balance ok : ",
+        //   startBalance.gt(totalInvest)
+        // );
         console.log("tx Hash : ", tx.hash);
-      }
 
-      _consolaTable.push({
-        Investment: parseFloat(formatUnits(invest, 18)),
-        Profit: parseFloat(formatUnits(profit, 18)),
-        GasFee: parseFloat(formatUnits(gasFee, 18)),
-        "Profitable?(With Gas)": profit.sub(invest).sub(gasFee).gt(0),
-        "Profitable?(Without Gas)": profit.sub(invest).gt(0),
-        // token1: token1,
-        token2: token2,
-        token1_name: txData._token1_name,
-        token2_name: txData._token2_name,
-      });
+        _consolaTable.push({
+          Investment: parseFloat(formatUnits(invest, 18)),
+          Profit: parseFloat(formatUnits(profit, 18)),
+          GasFee: parseFloat(formatUnits(gasFee, 18)),
+          "Profitable?(With Gas)": profit.sub(invest).sub(gasFee).gt(0),
+          "Profitable?(Without Gas)": profit.sub(invest).gt(0),
+          token1_name: txData._token1_name,
+          token2_name: txData._token2_name,
+        });
+      }
     }
   }
 
   console.table(_consolaTable);
+
   let { _balance: endBalance } = await contract.getContractErc20Balance(
     INVESTMENT_ASSET
   );
@@ -137,10 +138,11 @@ async function esitmateGas(
   gasEstimation = await contract.estimateGas.startArbitrage(
     txData._token1,
     txData._token2,
-    txData._router2,
     txData._router1,
+    txData._router2,
     txData._investAmount,
     {
+      gasLimit: 300000,
       maxFeePerGas: maxFeePerGas,
       maxPriorityFeePerGas: maxPriorityFeePerGas,
     }
@@ -162,11 +164,12 @@ async function simulateTransaction(
     let profit = await contract.callStatic.startArbitrage(
       txData._token1,
       txData._token2,
-      txData._router2,
       txData._router1,
+      txData._router2,
       txData._investAmount,
       // gasParams
       {
+        gasLimit: 300000,
         maxFeePerGas: maxFeePerGas,
         maxPriorityFeePerGas: maxPriorityFeePerGas,
       }
@@ -176,7 +179,6 @@ async function simulateTransaction(
       success: true,
       invest: txData._investAmount,
       profit: profit,
-      // gas: parseUnits(gasEstimation.toString(), "gwei"), // Normalize gasestimation result gwei to wei (nAVAX 10^9 to Wei 10^18)
       token1: txData._token1,
       token2: txData._router2,
       router1: txData._router1,
@@ -184,12 +186,11 @@ async function simulateTransaction(
       investAmount: txData._investAmount,
     };
   } catch (exeption: any) {
-    console.log(exeption.error);
+    // console.log(exeption.error);
     return {
       success: false,
       invest: BigNumber.from("0"),
       profit: BigNumber.from("0"),
-      // gas: BigNumber.from("0"),
     };
   }
 }

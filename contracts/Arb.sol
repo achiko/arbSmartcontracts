@@ -25,12 +25,6 @@ contract Arb  {
 
     fallback() external payable {}
 
-    // function wrapAwax(uint _amount) public {
-    //     (bool success,) = address(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7).call{value: _amount}("");
-    //     require(success);
-    // }
-
-
     function startArbitrage(
         address _token1,
         address _token2,
@@ -39,6 +33,8 @@ contract Arb  {
         uint _amount
     ) public returns (uint) {
 
+        uint gasOnStart = gasleft();
+        
         address[] memory path = new address[](2);
         path[0] = _token1;
         path[1] = _token2;
@@ -49,8 +45,7 @@ contract Arb  {
             IERC20(_token1).approve(_router1, MAX_INT);
         }
 
-
-        uint amountReceived = pair1Router.swapExactTokensForTokens(
+        uint amountReceived1 = pair1Router.swapExactTokensForTokens(
           _amount, 
           0, 
           path, 
@@ -64,17 +59,22 @@ contract Arb  {
         path1[0] = _token2;
         path1[1] = _token1;
         
-        if (IERC20(_token2).allowance(address(this), _router2) < amountReceived * 2) {
+        if (IERC20(_token2).allowance(address(this), _router2) < amountReceived1 * 2) {
             IERC20(_token2).approve(_router2, MAX_INT);
         }
         
-        uint amountReceived1 = pair2Router.swapExactTokensForTokens(
-          amountReceived, 
+        uint amountReceived2 = pair2Router.swapExactTokensForTokens(
+          amountReceived1, 
           0, 
           path1, 
           address(this), 
           block.timestamp + 120 seconds
         )[1];
+
+
+        uint gasSpent = gasOnStart -  gasleft();
+        
+        require(amountReceived2 - gasSpent > _amount);
 
         return amountReceived1;
     }
